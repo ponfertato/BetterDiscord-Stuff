@@ -1,0 +1,6 @@
+[submodule ".submodules/YABDP4Nitro.git"]
+	path = .submodules/YABDP4Nitro.git
+	url = https://github.com/riolubruh/YABDP4Nitro.git
+[submodule ".submodules/zelk.git"]
+	path = .submodules/zelk.git
+	url = https://github.com/schnensch0/zelk.git
