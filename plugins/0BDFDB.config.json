@@ -1,7 +1,7 @@
 {
 	"all": {
 		"changeLogs": {
-			"BDFDB": "3.2.9",
+			"BDFDB": "3.3.0",
 			"PluginRepo": "2.5.1",
 			"SplitLargeMessages": "1.8.0",
 			"ThemeRepo": "2.5.0"
