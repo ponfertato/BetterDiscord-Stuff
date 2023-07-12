@@ -1,5 +1,4 @@
-plugins/0BDFDB.config.json
-plugins/0BDFDB.data.json
-plugins/PluginRepo.config.json
-plugins/ThemeRepo.config.json
-plugins/ZeresPluginLibrary.config.json
+!plugins/DoNotTrack.config.json
+!plugins/YABDP4Nitro.config.json
+plugins/*.config.json
+plugins/*.data.json
