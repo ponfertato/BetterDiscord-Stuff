@@ -1,0 +1,4 @@
+!plugins/DoNotTrack.config.json
+!plugins/YABDP4Nitro.config.json
+plugins/*.config.json
+plugins/*.data.json
