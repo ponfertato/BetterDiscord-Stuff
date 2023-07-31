@@ -1,6 +1,6 @@
 {
     "currentVersionInfo": {
-        "version": "4.5.5",
+        "version": "4.6.0",
         "hasShownChangelog": true
     },
     "settings": {
@@ -21,9 +21,6 @@
         "maxBitrate": -1,
         "targetBitrate": -1,
         "voiceBitrate": 128,
-        "CameraSettingsEnabled": false,
-        "CameraWidth": 1920,
-        "CameraHeight": 1080,
         "ResolutionSwapper": false,
         "stickerBypass": true,
         "profileV2": false,
@@ -32,6 +29,10 @@
         "videoCodec": 0,
         "clientThemes": true,
         "lastGradientSettingStore": -1,
+        "fakeProfileThemes": true,
+        "CameraSettingsEnabled": false,
+        "CameraWidth": 1920,
+        "CameraHeight": 1080,
         "audioSourcePID": 0
     }
 }
