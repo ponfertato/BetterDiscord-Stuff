@@ -30,6 +30,7 @@
         "clientThemes": true,
         "lastGradientSettingStore": -1,
         "fakeProfileThemes": true,
+        "removeScreenshareUpsell": true,
         "CameraSettingsEnabled": false,
         "CameraWidth": 1920,
         "CameraHeight": 1080,
