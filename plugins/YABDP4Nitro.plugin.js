@@ -1,7 +1,7 @@
 /**
  * @name YABDP4Nitro
  * @author Riolubruh
- * @version 4.6.0
+ * @version 4.7.2
  * @source https://github.com/riolubruh/YABDP4Nitro
  * @updateUrl https://raw.githubusercontent.com/riolubruh/YABDP4Nitro/main/YABDP4Nitro.plugin.js
  */
@@ -38,7 +38,7 @@ module.exports = (() => {
 				"discord_id": "359063827091816448",
 				"github_username": "riolubruh"
 			}],
-			"version": "4.6.0",
+			"version": "4.7.2",
 			"description": "Unlock all screensharing modes, and use cross-server & GIF emotes!",
 			"github": "https://github.com/riolubruh/YABDP4Nitro",
 			"github_raw": "https://raw.githubusercontent.com/riolubruh/YABDP4Nitro/main/YABDP4Nitro.plugin.js"
@@ -113,7 +113,9 @@ module.exports = (() => {
 					"videoCodec": 0,
 					"clientThemes": true,
 					"lastGradientSettingStore": -1,
-					"fakeProfileThemes": true
+					"fakeProfileThemes": true,
+					//"removeProfileUpsell": true,
+					"removeScreenshareUpsell": true
 				};
 				settings = Utilities.loadSettings(this.getName(), this.defaultSettings);
 				getSettingsPanel() {
@@ -189,7 +191,9 @@ module.exports = (() => {
 							new Settings.Switch("Profile Accents", "When enabled, you will see (almost) all users with the new Nitro-exclusive look for profiles (the sexier look). When disabled, the default behavior is used. Does not allow you to update your profile accent.", this.settings.profileV2, value => this.settings.profileV2 = value),
 							new Settings.Switch("Change PremiumType", "This is now optional. Enabling this may help compatibility for certain things or harm it. SimpleDiscordCrypt requires that this be enabled to have emojis work correctly.", this.settings.changePremiumType, value => this.settings.changePremiumType = value),
 							new Settings.Switch("Gradient Client Themes", "Allows you to use Nitro-exclusive Client Themes.", this.settings.clientThemes, value => this.settings.clientThemes = value),
-							new Settings.Switch("Fake Profile Themes", "Uses invisible 3y3 encoding to allow profile theming by hiding the colors in your bio.", this.settings.fakeProfileThemes, value => this.settings.fakeProfileThemes = value)
+							new Settings.Switch("Fake Profile Themes", "Uses invisible 3y3 encoding to allow profile theming by hiding the colors in your bio.", this.settings.fakeProfileThemes, value => this.settings.fakeProfileThemes = value),
+							//new Settings.Switch("Remove Profile Customization Upsell", "Removes the \"Try It Out\" upsell in the profile customization screen and replaces it with the Nitro variant.", this.settings.removeProfileUpsell, value => this.settings.removeProfileUpsell = value),
+							new Settings.Switch("Remove Screen Share Nitro Upsell", "Removes the Nitro upsell in the Screen Share quality option menu.", this.settings.removeScreenshareUpsell, value => this.settings.removeScreenshareUpsell = value)
 						)
 					])
 				}
@@ -224,35 +228,36 @@ module.exports = (() => {
 						if(document.getElementById("qualityButton") != undefined) document.getElementById("qualityButton").style.display = 'none'
 						if(document.getElementById("qualityMenu") != undefined) document.getElementById("qualityMenu").style.display = 'none'
 					}
-					
-					let permissions = BdApi.findModuleByProps("canUseCustomBackgrounds");
-					
+
 					if(this.settings.stickerBypass){
 						this.stickerSending();
 					}
 					
 					if(this.settings.emojiBypass){
 						this.emojiBypass();
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseAnimatedEmojis", () => {
-							return true
+						let emojiMods = WebpackModules.getByProps("B6", "ZP", "qc");
+						BdApi.Patcher.instead("YABDP4Nitro", emojiMods.ZP, "isEmojiFilteredOrLocked", () => {
+							return false
 						});
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseEmojisEverywhere", () => {
-							return true
+						BdApi.Patcher.instead("YABDP4Nitro", emojiMods.ZP, "isEmojiDisabled", () => {
+							return false
+						});
+						BdApi.Patcher.instead("YABDP4Nitro", emojiMods.ZP, "isEmojiFiltered", () => {
+							return false
+						});
+						BdApi.Patcher.instead("YABDP4Nitro", emojiMods.ZP, "isEmojiPremiumLocked", () => {
+							return false
+						});
+						BdApi.Patcher.instead("YABDP4Nitro", emojiMods.ZP, "getEmojiUnavailableReason", () => {
+							return
 						});
 					}
 					
 					if(this.settings.profileV2 == true){
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "isPremiumAtLeast", () => {
-							return true;
-						});
-					}
-					
-					if(!this.settings.emojiBypass && (this.originalNitroStatus == (null || undefined))){
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseAnimatedEmojis", () => {
-							return false;
-						});
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseEmojisEverywhere", () => {
-							return false;
+						const userProfileMod = WebpackModules.getByProps("getUserProfile");
+						BdApi.Patcher.after("YABDP4Nitro", userProfileMod, "getUserProfile", (_,args,ret) => {
+							if(ret == undefined) return;
+							ret.premiumType = 2;
 						});
 					}
 					
@@ -260,27 +265,20 @@ module.exports = (() => {
 						if(this.settings.ResolutionEnabled || this.settings.CustomFPSEnabled){
 							this.customVideoSettings(); //Apply custom screen share options
 						}
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canStreamMidQuality", () => {
-							return true;
-						});
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canStreamMedQuality", () => {
-							return true;
-						});
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canStreamHighQuality", () => {
-							return true;
-						});
 					}
 					
 					if(this.settings.forceStickersUnlocked){
-						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseStickersEverywhere", () => {
+						const stickerSendabilityModule = WebpackModules.getByProps("cO","eb","kl");
+						BdApi.Patcher.instead("YABDP4Nitro", stickerSendabilityModule, "cO", () => {
+							return 0
+						});
+						BdApi.Patcher.instead("YABDP4Nitro", stickerSendabilityModule, "kl", () => {
 							return true
 						});
 					}
+					
 					if(this.settings.clientThemes){
 						try{
-							BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseClientThemes", () => {
-								return true
-							});
 							const clientthemesmodule = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps("isPreview"));
 							delete clientthemesmodule.isPreview;
 							Object.defineProperty(clientthemesmodule, "isPreview", { //Enabling the nitro theme settings
@@ -303,7 +301,6 @@ module.exports = (() => {
 							const gradientSettingModule = ZLibrary.WebpackModules.getByProps("Bf", "X9", "zO");
 							
 							BdApi.Patcher.before("YABDP4Nitro", themesModule, "ZI", (_,args) => {
-								
 								if(args[0].backgroundGradientPresetId != undefined){ //If appearance is changed to a nitro client theme
 									this.settings.lastGradientSettingStore = parseInt(args[0].backgroundGradientPresetId); //Store the gradient value
 									Utilities.saveSettings(this.getName(), this.settings); //Save the gradient value to file
@@ -335,6 +332,21 @@ module.exports = (() => {
 						this.encodeProfileColors();
 					}
 					
+					/*if(this.settings.removeProfileUpsell){
+						BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUsePremiumProfileCustomization", () => {
+							return true
+						});
+					}*/
+					
+					try{BdApi.DOM.removeStyle("YABDP4Nitro")}catch(err){console.log(err)}
+					if(this.settings.removeScreenshareUpsell){
+						BdApi.DOM.addStyle("YABDP4Nitro",`
+						[class*="upsellBanner"] {
+						  display: none;
+						  visibility: hidden;
+						}`);
+					}
+					
 				} //End of saveAndUpdate
 
 				async UploadEmote(url, channelIdLmao, msg, emoji, runs){
@@ -359,7 +371,7 @@ module.exports = (() => {
 					
 					const CloudUploader = WebpackModules.getByProps("m","n");
 					
-					let fileUp = new CloudUploader.n({file:file,platform:1}, channelIdLmao);
+					let fileUp = new CloudUploader.n({file:file,isClip:false,isThumbnail:false,platform:1}, channelIdLmao, false, 0);
 					fileUp.isImage = true;
 					
 					let uploadOptions = new Object();
@@ -392,6 +404,7 @@ module.exports = (() => {
 				async customVideoSettings() {
 					const StreamButtons = WebpackModules.getByProps("LY", "aW", "ws");
 					if(this.settings.ResolutionEnabled && this.settings.CustomResolution != 0){
+						delete StreamButtons.LY.RESOLUTION_1440
 						StreamButtons.LY.RESOLUTION_1440 = this.settings.CustomResolution;
 						StreamButtons.ND[4].resolution = this.settings.CustomResolution;
 						StreamButtons.ND[5].resolution = this.settings.CustomResolution;
@@ -404,6 +417,7 @@ module.exports = (() => {
 						StreamButtons.km[3].label = this.settings.CustomResolution + "p";
 					}
 					if(!this.settings.ResolutionEnabled || (this.settings.CustomResolution == 0)){
+						delete StreamButtons.LY.RESOLUTION_1440
 						StreamButtons.LY.RESOLUTION_1440 = 1440;
 						StreamButtons.ND[4].resolution = 1440;
 						StreamButtons.ND[5].resolution = 1440;
@@ -415,7 +429,17 @@ module.exports = (() => {
 						delete StreamButtons.km[3].label;
 						StreamButtons.km[3].label = "1440p";
 					}
-					
+					function removeQualityParameters(x){
+						try{
+							delete x.quality
+						}catch(err){	
+						}
+						try{
+							delete x.guildPremiumTier
+						}catch(err){	
+						}
+					}
+					StreamButtons.ND.forEach(removeQualityParameters)
 					function replace60FPSRequirements(x) {
 						if(x.fps != 30 && x.fps != 15 && x.fps != 5) x.fps = BdApi.getData("YABDP4Nitro","settings").CustomFPS;
 					}
@@ -446,7 +470,7 @@ module.exports = (() => {
 						StreamButtons.ws.FPS_60 = 60;
 					}
 					
-					const updateRemoteWantsFramerate = ZLibrary.WebpackModules.getByPrototypes("updateRemoteWantsFramerate");
+					const updateRemoteWantsFramerate = WebpackModules.getByPrototypes("updateRemoteWantsFramerate");
 					if(updateRemoteWantsFramerate != undefined){
 						let L = updateRemoteWantsFramerate.prototype;
 						BdApi.Patcher.instead("YABDP4Nitro", L, "updateRemoteWantsFramerate", () => {
@@ -456,7 +480,7 @@ module.exports = (() => {
 					}
 					if(updateRemoteWantsFramerate == undefined){
 						await BdApi.Webpack.waitForModule(BdApi.Webpack.Filters.byPrototypeFields("updateRemoteWantsFramerate"));
-						const updateRemoteWantsFramerateMod = ZLibrary.WebpackModules.getByPrototypes("updateRemoteWantsFramerate").prototype;
+						const updateRemoteWantsFramerateMod = WebpackModules.getByPrototypes("updateRemoteWantsFramerate").prototype;
 						BdApi.Patcher.instead("YABDP4Nitro", updateRemoteWantsFramerateMod, "updateRemoteWantsFramerate", () => {
 							return
 						});
@@ -498,6 +522,7 @@ module.exports = (() => {
 					if(this.settings.ghostMode && !this.settings.uploadEmotes) {
 						BdApi.Patcher.before("YABDP4Nitro", DiscordModules.MessageActions, "sendMessage", (_, [, msg]) => {
 							let currentChannelId = BdApi.findModuleByProps("getLastChannelFollowingDestination").getChannelId();
+							let emojiGhostIteration = 0;
 							msg.validNonShortcutEmojis.forEach(emoji => {
 								if(this.emojiBypassForValidEmoji(emoji, currentChannelId)){
 									return
@@ -519,17 +544,10 @@ module.exports = (() => {
 									msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `)
 									return;
 								}
+								emojiGhostIteration++;
 								let ghostmodetext = "||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​|| _ _ _ _ _ "
 								if(msg.content.includes(ghostmodetext)) {
-									if(msg.content.includes(("https://embed.rauf.wtf/?&image=" + emoji.url.split("?")[0]))) {//Duplicate emoji handling (second duplicate)
-										msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + "https://test.rauf.workers.dev/?&image=" + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
-										return
-									}
-									if(msg.content.includes(emoji.url.split("?")[0])) { //Duplicate emoji handling (first duplicate)
-										msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + "https://embed.rauf.wtf/?&image=" + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
-										return
-									}
-									msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
+									msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless&${emojiGhostIteration} `
 									return
 								}
 								msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += ghostmodetext + "\n" + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
@@ -542,6 +560,7 @@ module.exports = (() => {
 							//console.log("Classic Method (No Ghost)")
 							BdApi.Patcher.before("YABDP4Nitro", DiscordModules.MessageActions, "sendMessage", (_, [, msg]) => {
 								let currentChannelId = BdApi.findModuleByProps("getLastChannelFollowingDestination").getChannelId();
+								let emojiGhostIteration = 0;
 								msg.validNonShortcutEmojis.forEach(emoji => {
 									if(this.emojiBypassForValidEmoji(emoji, currentChannelId)) return;
 									if(emoji.type == "UNICODE") return;
@@ -554,15 +573,8 @@ module.exports = (() => {
 										msg.content = msg.content.replace(("\\<" + emoji.allNamesString.replace(/~\b\d+\b/g, "") + emoji.id + ">"), ("<" + emoji.allNamesString.replace(/~\b\d+\b/g, "") + emoji.id + ">"));
 										return //If there is a backslash before the emoji, skip it.
 									} 
-									if(msg.content.includes(("https://embed.rauf.wtf/?&image=" + emoji.url.split("?")[0]))) {//Duplicate emoji handling (second duplicate)
-										msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + "https://test.rauf.workers.dev/?&image=" + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
-										return
-									}
-									if(msg.content.includes(emoji.url.split("?")[0])) { //Duplicate emoji handling (first duplicate)
-										msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, ""), msg.content += " " + "https://embed.rauf.wtf/?&image=" + emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `
-										return
-									}
-									msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless `)
+									emojiGhostIteration++;
+									msg.content = msg.content.replace(`<${emoji.animated ? "a" : ""}${emoji.allNamesString.replace(/~\b\d+\b/g, "")}${emoji.id}>`, emoji.url.split("?")[0] + `?size=${this.settings.emojiSize}&quality=lossless&${emojiGhostIteration} `)
 								})
 							});
 							//editing message (in classic mode)
@@ -589,6 +601,7 @@ module.exports = (() => {
 					
 					const StreamButtons = WebpackModules.getByProps("LY", "aW", "ws");
 					if(settings.ResolutionEnabled && settings.CustomResolution != 0){
+						delete StreamButtons.LY.RESOLUTION_1440
 						StreamButtons.LY.RESOLUTION_1440 = settings.CustomResolution;
 						StreamButtons.ND[4].resolution = settings.CustomResolution;
 						StreamButtons.ND[5].resolution = settings.CustomResolution;
@@ -601,6 +614,7 @@ module.exports = (() => {
 						StreamButtons.km[3].label = settings.CustomResolution + "p";
 					}
 					if(!settings.ResolutionEnabled || (settings.CustomResolution == 0)){
+						delete StreamButtons.LY.RESOLUTION_1440
 						StreamButtons.LY.RESOLUTION_1440 = 1440;
 						StreamButtons.ND[4].resolution = 1440;
 						StreamButtons.ND[5].resolution = 1440;
@@ -645,9 +659,11 @@ module.exports = (() => {
 					}
 				}
 				
-				videoQualityModule(){ //Custom Bitrates
+				videoQualityModule(){ //Custom Bitrates, FPS, Resolution
 					const b = ZLibrary.WebpackModules.getByProps("S", "Z")
 					const videoOptionFunctions = b.Z.prototype;
+					const videoModules = WebpackModules.getByPrototypes("_handleVideoStreamId").prototype
+					
 					if(this.settings.CustomBitrateEnabled){
 						BdApi.Patcher.before("YABDP4Nitro", videoOptionFunctions, "updateVideoQuality", (e) => {
 							//Minimum Bitrate
@@ -669,16 +685,17 @@ module.exports = (() => {
 					if(this.settings.CustomFPSEnabled){
 						BdApi.Patcher.before("YABDP4Nitro", videoOptionFunctions, "updateVideoQuality", (e) => {
 							if(e.stats?.camera !== undefined) return;
-							e.videoQualityManager.options.videoBudget.framerate = e.videoStreamParameters[0].maxFrameRate;
-							e.videoQualityManager.options.videoCapture.framerate = e.videoStreamParameters[0].maxFrameRate;
+							e.videoQualityManager.options.videoBudget.framerate = this.settings.CustomFPS;
+							e.videoQualityManager.options.videoCapture.framerate = this.settings.CustomFPS;
 							for(const ladder in e.videoQualityManager.ladder.ladder) {
-								e.videoQualityManager.ladder.ladder[ladder].framerate = e.videoStreamParameters[0].maxFrameRate;
-								e.videoQualityManager.ladder.ladder[ladder].mutedFramerate = parseInt(e.videoStreamParameters[0].maxFrameRate / 2);
+								e.videoQualityManager.ladder.ladder[ladder].framerate = this.settings.CustomFPS;
+								e.videoQualityManager.ladder.ladder[ladder].mutedFramerate = parseInt(this.settings.CustomFPS / 2);
 							}
 							for(const ladder of e.videoQualityManager.ladder.orderedLadder){
-								ladder.framerate = e.videoStreamParameters[0].maxFrameRate;
-								ladder.mutedFramerate = parseInt(e.videoStreamParameters[0].maxFrameRate / 2);
+								ladder.framerate = this.settings.CustomFPS;
+								ladder.mutedFramerate = parseInt(this.settings.CustomFPS / 2);
 							}
+							e.videoQualityManager.connection.remoteVideoSinkWants = this.settings.CustomFPS;
 						});
 					}
 					if(this.settings.ResolutionEnabled || this.settings.CustomFPSEnabled){
@@ -853,9 +870,13 @@ module.exports = (() => {
 				} //End of buttonCreate()
 				
 				async stickerSending(){
-					const permissions = BdApi.findModuleByProps("canUseCustomBackgrounds");
-					BdApi.Patcher.instead("YABDP4Nitro", permissions, "canUseStickersEverywhere", () => {
-						return true;
+					
+					const stickerSendabilityModule = WebpackModules.getByProps("cO","eb","kl");
+					BdApi.Patcher.instead("YABDP4Nitro", stickerSendabilityModule, "cO", () => {
+						return 0
+					});
+					BdApi.Patcher.instead("YABDP4Nitro", stickerSendabilityModule, "kl", () => {
+						return true
 					});
 					
 					BdApi.Patcher.instead("YABDP4Nitro", DiscordModules.MessageActions, "sendStickers", (_,b) => {
@@ -904,10 +925,19 @@ module.exports = (() => {
 						let copyButton = document.createElement("button");
 						copyButton.innerText = "Copy 3y3";
 						copyButton.className = "button-ejjZWC lookFilled-1H2Jvj colorBrand-2M3O3N sizeSmall-3R2P2p grow-2T4nbg"
+						copyButton.id = "copy3y3button"
+						themeColorsPickerModule.getTryItOutThemeColors();
 						copyButton.onclick = function(){
-							let themeColors = themeColorsPickerModule.getTryItOutThemeColors()
-							let primary = themeColors[0];
-							let accent = themeColors[1];
+							let themeColors = ZLibrary.WebpackModules.getByProps("getTryItOutThemeColors").getAllTryItOut()
+							if(themeColors == undefined){
+								try{
+									themeColors = themeColorsPickerModule.getAllPending().pendingThemeColors;
+								}catch(err){
+									console.error(err);
+								}
+							}
+							let primary = themeColors.tryItOutThemeColors[0];
+							let accent = themeColors.tryItOutThemeColors[1];
 							let message = `[#${primary.toString(16).padStart(6, "0")},#${accent.toString(16).padStart(6, "0")}]`;
 							let padding = "";
 							let encoded = Array.from(message)
@@ -917,7 +947,7 @@ module.exports = (() => {
 								.join("");
 
 							let encodedStr = ((padding || "") + " " + encoded);
-							//console.log("3y3: " + encodedStr);
+							
 							const clipboardTextElem = document.createElement("textarea");
 							clipboardTextElem.style.position = 'fixed';
 							clipboardTextElem.value = encodedStr;
@@ -933,8 +963,52 @@ module.exports = (() => {
 								profileThemeSection[0].appendChild(copyButton);
 							}
 						}
-						
 					});
+					BdApi.Patcher.after("YABDP4Nitro", themeColorsPickerModule, "getAllPending", () => {
+						if(document.getElementById("copy3y3button") == undefined){
+							const profileThemeSection = document.getElementsByClassName("sectionContainer-3y2cvf");
+							let copyButton = document.createElement("button");
+							copyButton.innerText = "Copy 3y3";
+							copyButton.className = "button-ejjZWC lookFilled-1H2Jvj colorBrand-2M3O3N sizeSmall-3R2P2p grow-2T4nbg"
+							copyButton.id = "copy3y3button"
+							copyButton.onclick = function(){
+								let themeColors = themeColorsPickerModule.getAllPending().pendingThemeColors
+								if(themeColors == undefined){
+									try{
+										themeColors = themeColorsPickerModule.getTryItOutThemeColors();
+									}catch(err){
+										console.error(err);
+									}
+								}
+								let primary = themeColors[0];
+								let accent = themeColors[1];
+								let message = `[#${primary.toString(16).padStart(6, "0")},#${accent.toString(16).padStart(6, "0")}]`;
+								let padding = "";
+								let encoded = Array.from(message)
+									.map(x => x.codePointAt(0))
+									.filter(x => x >= 0x20 && x <= 0x7f)
+									.map(x => String.fromCodePoint(x + 0xe0000))
+									.join("");
+
+								let encodedStr = ((padding || "") + " " + encoded);
+								
+								const clipboardTextElem = document.createElement("textarea");
+								clipboardTextElem.style.position = 'fixed';
+								clipboardTextElem.value = encodedStr;
+								document.body.appendChild(clipboardTextElem);
+								clipboardTextElem.select();
+								clipboardTextElem.setSelectionRange(0, 99999);
+								document.execCommand('copy');
+								document.body.removeChild(clipboardTextElem);	
+							}
+							copyButton.style = "margin-left: 10px;"
+							if(profileThemeSection[0] != undefined){
+								if(profileThemeSection[0].children.length == 2){
+									profileThemeSection[0].appendChild(copyButton);
+								}
+							}
+						}
+					})
 				}
 				
 				onStart() {
@@ -950,7 +1024,7 @@ module.exports = (() => {
 					if(document.getElementById("qualityButton")) document.getElementById("qualityButton").remove();
 					if(document.getElementById("qualityMenu")) document.getElementById("qualityMenu").remove();
 					if(document.getElementById("qualityInput")) document.getElementById("qualityInput").remove();
-					BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps("isPreview")).isPreview = this.previewInitial;
+					if(document.getElementById("copy3y3button")) document.getElementById("copy3y3button").remove();
 				}
 			};
 		};
