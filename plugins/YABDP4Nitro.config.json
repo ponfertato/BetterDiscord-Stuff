@@ -1,6 +1,6 @@
 {
     "currentVersionInfo": {
-        "version": "4.7.3",
+        "version": "4.8.0",
         "hasShownChangelog": true
     },
     "settings": {
@@ -31,6 +31,7 @@
         "lastGradientSettingStore": -1,
         "fakeProfileThemes": true,
         "removeScreenshareUpsell": true,
+        "fakeProfileBanners": true,
         "CameraSettingsEnabled": false,
         "CameraWidth": 1920,
         "CameraHeight": 1080,
