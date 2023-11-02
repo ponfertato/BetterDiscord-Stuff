@@ -1,6 +1,6 @@
 {
     "currentVersionInfo": {
-        "version": "4.8.0",
+        "version": "5.0.1",
         "hasShownChangelog": true
     },
     "settings": {
@@ -32,6 +32,12 @@
         "fakeProfileThemes": true,
         "removeScreenshareUpsell": true,
         "fakeProfileBanners": true,
+        "fakeAvatarDecorations": true,
+        "unlockAppIcons": false,
+        "profileEffects": true,
+        "killProfileEffects": false,
+        "avatarDecorations": [],
+        "customPFPs": true,
         "CameraSettingsEnabled": false,
         "CameraWidth": 1920,
         "CameraHeight": 1080,

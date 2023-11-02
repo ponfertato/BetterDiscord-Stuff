@@ -1,7 +1,7 @@
 /**
  * @name ActivityIcons
  * @author Neodymium
- * @version 1.4.0
+ * @version 1.4.2
  * @description Improves the default icons next to statuses
  * @source https://github.com/Neodymium7/BetterDiscordStuff/blob/main/ActivityIcons/ActivityIcons.plugin.js
  * @donate https://ko-fi.com/neodymium7
@@ -40,18 +40,24 @@ const config = {
 				name: "Neodymium"
 			}
 		],
-		version: "1.4.0",
+		version: "1.4.2",
 		description: "Improves the default icons next to statuses",
 		github: "https://github.com/Neodymium7/BetterDiscordStuff/blob/main/ActivityIcons/ActivityIcons.plugin.js",
 		github_raw: "https://raw.githubusercontent.com/Neodymium7/BetterDiscordStuff/main/ActivityIcons/ActivityIcons.plugin.js"
 	},
 	changelog: [
 		{
-			title: "Improved",
+			title: "Added",
 			type: "improved",
 			items: [
-				"Added icon for 'Watching' activities",
-				"Added more settings options."
+				"Added French translations (Thanks to Piquixel on GitHub!)"
+			]
+		},
+		{
+			title: "Fixed",
+			type: "fixed",
+			items: [
+				"Fixed issues with the newest Discord update."
 			]
 		}
 	]
@@ -142,11 +148,12 @@ function buildPlugin([BasePlugin, Library]) {
 				return obj;
 			}, {});
 		}
-		function byValues(...filters) {
-			return (e, m, i) => {
+		function bySourceStrings(...strings) {
+			return (_e, _m, i) => {
+				const moduleSource = betterdiscord.Webpack.modules[i].toString();
 				let match = true;
-				for (const filter of filters) {
-					if (!Object.values(e).some((v) => filter(v, m, i))) {
+				for (const string of strings) {
+					if (!moduleSource.includes(string)) {
 						match = false;
 						break;
 					}
@@ -154,46 +161,40 @@ function buildPlugin([BasePlugin, Library]) {
 				return match;
 			};
 		}
+		function getIcon(name, searchString) {
+			return expectModule({
+				filter: (e, m, i) => {
+					return bySourceStrings(searchString)(e, m, i) && typeof e == "function";
+				},
+				name,
+				fallback: (_props) => null
+			});
+		}
 	
 		// modules/discordmodules.tsx
 		const {
-			Filters: { byStrings }
+			Filters: { byProps }
 		} = betterdiscord.Webpack;
 		const Error$1 = (_props) => BdApi.React.createElement("div", null, BdApi.React.createElement("h1", {
 			style: { color: "red" }
 		}, "Error: Component not found"));
 		const ActivityStatus = expectModule({
-			filter: byValues(byStrings("applicationStream")),
+			filter: byProps("ActivityEmoji"),
 			name: "ActivityStatus",
 			fatal: true
 		});
 		const Icons = {
-			Activity: expectModule({
-				filter: byStrings("M5.79335761,5 L18.2066424,5 C19.7805584,5 21.0868816,6.21634264"),
-				name: "Activity",
-				fallback: (_props) => null
-			}),
-			RichActivity: expectModule({
-				filter: byStrings("M6,7 L2,7 L2,6 L6,6 L6,7 Z M8,5 L2,5 L2,4 L8,4"),
-				name: "RichActivity",
-				fallback: (_props) => null
-			}),
-			Headset: expectModule({
-				filter: byStrings("M12 2.00305C6.486 2.00305 2 6.48805 2 12.0031V20.0031C2"),
-				name: "Headset",
-				fallback: (_props) => null
-			}),
-			Screen: expectModule({
-				filter: byStrings("M4 2.5C2.897 2.5 2 3.397 2 4.5V15.5C2 16.604 2.897", "2.5H4ZM20"),
-				name: "Screen",
-				fallback: (_props) => null
-			})
+			Activity: getIcon("Activity", "M5.79335761,5 L18.2066424,5 C19.7805584,5 21.0868816,6.21634264"),
+			RichActivity: getIcon("RichActivity", "M6,7 L2,7 L2,6 L6,6 L6,7 Z M8,5 L2,5 L2,4 L8,4"),
+			Headset: getIcon("Headset", "M12 2.00305C6.486 2.00305 2 6.48805 2 12.0031V20.0031C2"),
+			Screen: getIcon("Screen", "M4 2.5C2.897 2.5 2 3.397 2 4.5V15.5C2 16.604 2.897")
 		};
-		const SwitchItem = expectModule({
-			filter: (m) => m.toString?.().includes("().dividerDefault"),
-			searchExports: true,
-			name: "SwitchItem",
-			fallback: Error$1
+		const Common = expectModule({
+			filter: byProps("FormSwitch"),
+			name: "Common",
+			fallback: {
+				FormSwitch: Error$1
+			}
 		});
 		getClasses("Margins", ["marginBottom8"]);
 		const peopleListItemSelector = getSelectors("People List Classes", ["peopleListItem"]).peopleListItem;
@@ -278,7 +279,7 @@ function buildPlugin([BasePlugin, Library]) {
 			for (const key in strings) {
 				Object.defineProperty(stringsManager, key, {
 					get() {
-						return strings[key] || this.locales[this.defaultLocale][key];
+						return strings[key] || locales[defaultLocale][key];
 					},
 					enumerable: true,
 					configurable: false
@@ -288,6 +289,22 @@ function buildPlugin([BasePlugin, Library]) {
 		}
 	
 		// locales.json
+		const fr = {
+			ACTIVITY_TOOLTIP_LENGTH_2: "{{ACTIVITY1}} et {{ACTIVITY2}}",
+			ACTIVITY_TOOLTIP_LENGTH_3: "{{ACTIVITY1}}, {{ACTIVITY2}}, et {{ACTIVITY3}}",
+			ACTIVITY_TOOLTIP_LENGTH_MANY: "{{ACTIVITY1}}, {{ACTIVITY2}}, et {{COUNT}} de plus",
+			LISTENING_TOOLTIP_ARTIST: "de {{NAME}}",
+			SETTINGS_NORMAL_ACTIVITY: "Icônes d'activité normale",
+			SETTINGS_NORMAL_ACTIVITY_NOTE: "Affiche des icônes pour les activités normales (jeux et autres activités).",
+			SETTINGS_RICH_PRESENCE: "Icônes Rich Presence",
+			SETTINGS_RICH_PRESENCE_NOTE: "Affiche des icônes pour les activités Rich Presence (remplace l'icône d'activité normale).",
+			SETTINGS_PLATFORM: "Icônes de Plateforme",
+			SETTINGS_PLATFORM_NOTE: "Affiche des icônes pour les activités sur plateformes (Xbox, Playstation, etc.) (remplace l'icône d'activité normale).",
+			SETTINGS_WATCHING: "Icônes de visionnage",
+			SETTINGS_WATCHING_NOTE: "Affiche des icônes pour les activités de visionnage (YouTube Watch Together, etc.).",
+			SETTINGS_LISTENING: "Icônes d'écoute",
+			SETTINGS_LISTENING_NOTE: "Affiche des icônes pour les activités d'écoute (Spotify)."
+		};
 		const locales = {
 			"en-US": {
 			ACTIVITY_TOOLTIP_LENGTH_2: "{{ACTIVITY1}} and {{ACTIVITY2}}",
@@ -310,7 +327,8 @@ function buildPlugin([BasePlugin, Library]) {
 			ACTIVITY_TOOLTIP_LENGTH_3: "{{ACTIVITY1}}, {{ACTIVITY2}} och {{ACTIVITY3}}",
 			ACTIVITY_TOOLTIP_LENGTH_MANY: "{{ACTIVITY1}}, {{ACTIVITY2}} och {{COUNT}} till",
 			LISTENING_TOOLTIP_ARTIST: "av {{NAME}}"
-		}
+		},
+			fr: fr
 		};
 	
 		// modules/utils.ts
@@ -484,35 +502,35 @@ function buildPlugin([BasePlugin, Library]) {
 		// components/SettingsPanel.tsx
 		function SettingsPanel() {
 			const settingsState = Settings.useSettingsState();
-			return BdApi.React.createElement(BdApi.React.Fragment, null, BdApi.React.createElement(SwitchItem, {
+			return BdApi.React.createElement(BdApi.React.Fragment, null, BdApi.React.createElement(Common.FormSwitch, {
 				children: Strings.SETTINGS_NORMAL_ACTIVITY,
 				note: Strings.SETTINGS_NORMAL_ACTIVITY_NOTE,
 				value: settingsState.normalActivityIcons,
 				onChange: (v) => {
 					Settings.normalActivityIcons = v;
 				}
-			}), BdApi.React.createElement(SwitchItem, {
+			}), BdApi.React.createElement(Common.FormSwitch, {
 				children: Strings.SETTINGS_RICH_PRESENCE,
 				note: Strings.SETTINGS_RICH_PRESENCE_NOTE,
 				value: settingsState.richPresenceIcons,
 				onChange: (v) => {
 					Settings.richPresenceIcons = v;
 				}
-			}), BdApi.React.createElement(SwitchItem, {
+			}), BdApi.React.createElement(Common.FormSwitch, {
 				children: Strings.SETTINGS_PLATFORM,
 				note: Strings.SETTINGS_PLATFORM_NOTE,
 				value: settingsState.platformIcons,
 				onChange: (v) => {
 					Settings.platformIcons = v;
 				}
-			}), BdApi.React.createElement(SwitchItem, {
+			}), BdApi.React.createElement(Common.FormSwitch, {
 				children: Strings.SETTINGS_LISTENING,
 				note: Strings.SETTINGS_LISTENING_NOTE,
 				value: settingsState.listeningIcons,
 				onChange: (v) => {
 					Settings.listeningIcons = v;
 				}
-			}), BdApi.React.createElement(SwitchItem, {
+			}), BdApi.React.createElement(Common.FormSwitch, {
 				children: Strings.SETTINGS_WATCHING,
 				note: Strings.SETTINGS_WATCHING_NOTE,
 				value: settingsState.watchingIcons,
@@ -550,7 +568,7 @@ function buildPlugin([BasePlugin, Library]) {
 				this.patchActivityStatus();
 			}
 			patchActivityStatus() {
-				betterdiscord.Patcher.after(ActivityStatus, "Z", (_, [props], ret) => {
+				betterdiscord.Patcher.after(ActivityStatus, "default", (_, [props], ret) => {
 					if (!ret)
 						return;
 					ret.props.children[2] = null;
