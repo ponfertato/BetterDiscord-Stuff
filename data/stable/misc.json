@@ -1,0 +1,8 @@
+{
+    "version": "1.9.5",
+    "addonlistControls": {
+        "plugin": {
+            "sort": "isEnabled"
+        }
+    }
+}
