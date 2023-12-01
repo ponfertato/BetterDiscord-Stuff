@@ -1,6 +1,6 @@
 {
     "currentVersionInfo": {
-        "version": "5.0.1",
+        "version": "5.0.6",
         "hasShownChangelog": true
     },
     "settings": {
@@ -38,6 +38,9 @@
         "killProfileEffects": false,
         "avatarDecorations": [],
         "customPFPs": true,
+        "experiments": false,
+        "userPfpIntegration": true,
+        "userBgIntegration": true,
         "CameraSettingsEnabled": false,
         "CameraWidth": 1920,
         "CameraHeight": 1080,
