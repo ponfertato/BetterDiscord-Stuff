@@ -4,5 +4,14 @@
         "plugin": {
             "sort": "isEnabled"
         }
+    },
+    "drawerStates": {
+        "settings": {
+            "customcss": false,
+            "addons": false,
+            "window": false,
+            "editor": false,
+            "developer": false
+        }
     }
 }
